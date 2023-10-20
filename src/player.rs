@@ -11,6 +11,7 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<InputState>()
             .init_resource::<MovementSettings>()
+            .init_resource::<KeyBindings>()
             .add_systems(Startup, spawn_player)
             .add_systems(Startup, initial_grab_cursor)
             .add_systems(Update, cursor_grab)
@@ -38,6 +39,31 @@ impl Default for MovementSettings {
         Self {
             sensitivity: 0.0001,
             speed: 5.,
+        }
+    }
+}
+
+#[derive(Resource)]
+struct KeyBindings {
+    pub move_forward: KeyCode,
+    pub move_backward: KeyCode,
+    pub move_right: KeyCode,
+    pub move_left: KeyCode,
+    pub move_ascend: KeyCode,
+    pub move_descend: KeyCode,
+    pub toggle_grab_cursor: KeyCode,
+}
+
+impl Default for KeyBindings {
+    fn default() -> Self {
+        Self {
+            move_forward: KeyCode::W,
+            move_backward: KeyCode::S,
+            move_right: KeyCode::D,
+            move_left: KeyCode::A,
+            move_ascend: KeyCode::Space,
+            move_descend: KeyCode::ShiftLeft,
+            toggle_grab_cursor: KeyCode::Escape,
         }
     }
 }
@@ -78,9 +104,10 @@ fn initial_grab_cursor(mut primary_window: Query<&mut Window, With<PrimaryWindow
 fn cursor_grab(
     keys: Res<Input<KeyCode>>,
     mut primary_window: Query<&mut Window, With<PrimaryWindow>>,
+    keybindings: Res<KeyBindings>,
 ) {
     if let Ok(mut window) = primary_window.get_single_mut() {
-        if keys.just_pressed(KeyCode::Escape) {
+        if keys.just_pressed(keybindings.toggle_grab_cursor) {
             toggle_grab_cursor(&mut window);
         };
     } else {
@@ -94,6 +121,7 @@ fn player_move(
     mut primary_window: Query<&mut Window, With<PrimaryWindow>>,
     mut query: Query<&mut Transform, With<Player>>,
     settings: Res<MovementSettings>,
+    keybindings: Res<KeyBindings>,
 ) {
     if let Ok(mut window) = primary_window.get_single_mut() {
         for mut transform in query.iter_mut() {
@@ -107,17 +135,17 @@ fn player_move(
                     CursorGrabMode::None => (),
                     _ => {
                         let key = *key;
-                        if key == KeyCode::W {
+                        if key == keybindings.move_forward {
                             direction += forward;
-                        } else if key == KeyCode::S {
+                        } else if key == keybindings.move_backward {
                             direction -= forward;
-                        } else if key == KeyCode::D {
+                        } else if key == keybindings.move_right {
                             direction += right;
-                        } else if key == KeyCode::A {
+                        } else if key == keybindings.move_left {
                             direction -= right;
-                        } else if key == KeyCode::Space {
+                        } else if key == keybindings.move_ascend {
                             direction += Vec3::Y;
-                        } else if key == KeyCode::ShiftLeft {
+                        } else if key == keybindings.move_descend {
                             direction -= Vec3::Y;
                         }
                     }
