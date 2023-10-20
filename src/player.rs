@@ -5,7 +5,8 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, spawn_player)
-            .add_systems(Update, player_move);
+            .add_systems(Update, player_move)
+            .add_systems(Update, player_look);
     }
 }
 
@@ -56,5 +57,34 @@ fn player_move(
 
         let movement = direction.normalize_or_zero() * 5.0 * time.delta_seconds();
         transform.translation += movement;
+    }
+}
+
+fn player_look(
+    keys: Res<Input<KeyCode>>,
+    time: Res<Time>,
+    mut query: Query<&mut Transform, With<Player>>,
+) {
+    for mut transform in query.iter_mut() {
+        let (mut yaw, mut pitch, _) = transform.rotation.to_euler(EulerRot::YXZ);
+
+        if keys.pressed(KeyCode::Left) {
+            yaw += 1.0f32.to_radians();
+        };
+
+        if keys.pressed(KeyCode::Right) {
+            yaw -= 1.0f32.to_radians();
+        };
+
+        if keys.pressed(KeyCode::Up) {
+            pitch += 1.0f32.to_radians();
+        };
+
+        if keys.pressed(KeyCode::Down) {
+            pitch -= 1.0f32.to_radians();
+        };
+
+        let looking = Quat::from_axis_angle(Vec3::Y, yaw) * Quat::from_axis_angle(Vec3::X, pitch);
+        transform.rotation = looking;
     }
 }
