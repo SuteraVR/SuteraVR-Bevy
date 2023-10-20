@@ -1,4 +1,6 @@
 use bevy::{
+    ecs::event::ManualEventReader,
+    input::mouse::MouseMotion,
     prelude::*,
     window::{CursorGrabMode, PrimaryWindow},
 };
@@ -7,7 +9,8 @@ pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, spawn_player)
+        app.init_resource::<InputState>()
+            .add_systems(Startup, spawn_player)
             .add_systems(Startup, initial_grab_cursor)
             .add_systems(Update, cursor_grab)
             .add_systems(Update, player_move)
@@ -17,6 +20,11 @@ impl Plugin for PlayerPlugin {
 
 #[derive(Component)]
 struct Player;
+
+#[derive(Resource, Default)]
+struct InputState {
+    reader_motion: ManualEventReader<MouseMotion>,
+}
 
 fn spawn_player(mut commands: Commands) {
     let player = (
@@ -100,30 +108,48 @@ fn player_move(
 }
 
 fn player_look(
-    keys: Res<Input<KeyCode>>,
-    time: Res<Time>,
+    // keys: Res<Input<KeyCode>>,
+    primary_window: Query<&mut Window, With<PrimaryWindow>>,
+    mut state: ResMut<InputState>,
+    motion: Res<Events<MouseMotion>>,
     mut query: Query<&mut Transform, With<Player>>,
 ) {
-    for mut transform in query.iter_mut() {
-        let (mut yaw, mut pitch, _) = transform.rotation.to_euler(EulerRot::YXZ);
+    if let Ok(window) = primary_window.get_single() {
+        for mut transform in query.iter_mut() {
+            for ev in state.reader_motion.iter(&motion) {
+                let (mut yaw, mut pitch, _) = transform.rotation.to_euler(EulerRot::YXZ);
+                match window.cursor.grab_mode {
+                    CursorGrabMode::None => (),
+                    _ => {
+                        let window_scale = window.height().min(window.width());
+                        print!("{}", window_scale);
+                        pitch -= (0.0001f32 * ev.delta.y * window_scale).to_radians();
+                        yaw -= (0.0001f32 * ev.delta.x * window_scale).to_radians();
+                    }
+                }
+                pitch = pitch.clamp(-1.54, 1.54);
+                let looking =
+                    Quat::from_axis_angle(Vec3::Y, yaw) * Quat::from_axis_angle(Vec3::X, pitch);
+                transform.rotation = looking;
+            }
 
-        if keys.pressed(KeyCode::Left) {
-            yaw += 1.0f32.to_radians();
-        };
+            /*
+            if keys.pressed(KeyCode::Left) {
+                yaw += 1.0f32.to_radians();
+            };
 
-        if keys.pressed(KeyCode::Right) {
-            yaw -= 1.0f32.to_radians();
-        };
+            if keys.pressed(KeyCode::Right) {
+                yaw -= 1.0f32.to_radians();
+            };
 
-        if keys.pressed(KeyCode::Up) {
-            pitch += 1.0f32.to_radians();
-        };
+            if keys.pressed(KeyCode::Up) {
+                pitch += 1.0f32.to_radians();
+            };
 
-        if keys.pressed(KeyCode::Down) {
-            pitch -= 1.0f32.to_radians();
-        };
-
-        let looking = Quat::from_axis_angle(Vec3::Y, yaw) * Quat::from_axis_angle(Vec3::X, pitch);
-        transform.rotation = looking;
+            if keys.pressed(KeyCode::Down) {
+                pitch -= 1.0f32.to_radians();
+            };
+            */
+        }
     }
 }
