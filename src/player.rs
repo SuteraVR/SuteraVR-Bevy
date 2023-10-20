@@ -123,7 +123,7 @@ fn player_move(
     settings: Res<MovementSettings>,
     keybindings: Res<KeyBindings>,
 ) {
-    if let Ok(mut window) = primary_window.get_single_mut() {
+    if let Ok(window) = primary_window.get_single_mut() {
         for mut transform in query.iter_mut() {
             let mut direction = Vec3::ZERO;
             let local_z = transform.local_z();
