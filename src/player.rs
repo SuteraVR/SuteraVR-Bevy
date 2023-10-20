@@ -10,6 +10,7 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<InputState>()
+            .init_resource::<MovementSettings>()
             .add_systems(Startup, spawn_player)
             .add_systems(Startup, initial_grab_cursor)
             .add_systems(Update, cursor_grab)
@@ -24,6 +25,21 @@ struct Player;
 #[derive(Resource, Default)]
 struct InputState {
     reader_motion: ManualEventReader<MouseMotion>,
+}
+
+#[derive(Resource)]
+struct MovementSettings {
+    pub sensitivity: f32,
+    pub speed: f32,
+}
+
+impl Default for MovementSettings {
+    fn default() -> Self {
+        Self {
+            sensitivity: 0.0001,
+            speed: 5.,
+        }
+    }
 }
 
 fn spawn_player(mut commands: Commands) {
@@ -77,6 +93,7 @@ fn player_move(
     time: Res<Time>,
     mut primary_window: Query<&mut Window, With<PrimaryWindow>>,
     mut query: Query<&mut Transform, With<Player>>,
+    settings: Res<MovementSettings>,
 ) {
     if let Ok(mut window) = primary_window.get_single_mut() {
         for mut transform in query.iter_mut() {
@@ -106,7 +123,8 @@ fn player_move(
                     }
                 }
 
-                let movement = direction.normalize_or_zero() * 5.0 * time.delta_seconds();
+                let movement =
+                    direction.normalize_or_zero() * settings.speed * time.delta_seconds();
                 transform.translation += movement;
             }
         }
@@ -116,11 +134,11 @@ fn player_move(
 }
 
 fn player_look(
-    // keys: Res<Input<KeyCode>>,
     primary_window: Query<&mut Window, With<PrimaryWindow>>,
     mut state: ResMut<InputState>,
     motion: Res<Events<MouseMotion>>,
     mut query: Query<&mut Transform, With<Player>>,
+    settings: Res<MovementSettings>,
 ) {
     if let Ok(window) = primary_window.get_single() {
         for mut transform in query.iter_mut() {
@@ -130,9 +148,8 @@ fn player_look(
                     CursorGrabMode::None => (),
                     _ => {
                         let window_scale = window.height().min(window.width());
-                        print!("{}", window_scale);
-                        pitch -= (0.0001f32 * ev.delta.y * window_scale).to_radians();
-                        yaw -= (0.0001f32 * ev.delta.x * window_scale).to_radians();
+                        pitch -= (settings.sensitivity * ev.delta.y * window_scale).to_radians();
+                        yaw -= (settings.sensitivity * ev.delta.x * window_scale).to_radians();
                     }
                 }
                 pitch = pitch.clamp(-1.54, 1.54);
