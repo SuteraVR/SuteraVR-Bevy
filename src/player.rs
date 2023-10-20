@@ -41,7 +41,7 @@ fn player_move(
         if keys.pressed(KeyCode::D) {
             direction += transform.right();
         };
-        if keys.pressed(KeyCode::S) {
+        if keys.pressed(KeyCode::A) {
             direction += transform.left();
         };
 
