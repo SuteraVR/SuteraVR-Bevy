@@ -46,6 +46,14 @@ fn player_move(
         };
 
         direction.y = 0.0;
+
+        if keys.pressed(KeyCode::Space) {
+            direction += transform.up();
+        };
+        if keys.pressed(KeyCode::ShiftLeft) {
+            direction += transform.down();
+        };
+
         let movement = direction.normalize_or_zero() * 5.0 * time.delta_seconds();
         transform.translation += movement;
     }
