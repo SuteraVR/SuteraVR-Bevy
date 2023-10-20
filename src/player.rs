@@ -75,35 +75,43 @@ fn cursor_grab(
 fn player_move(
     keys: Res<Input<KeyCode>>,
     time: Res<Time>,
+    mut primary_window: Query<&mut Window, With<PrimaryWindow>>,
     mut query: Query<&mut Transform, With<Player>>,
 ) {
-    for mut transform in query.iter_mut() {
-        let mut direction = Vec3::ZERO;
+    if let Ok(mut window) = primary_window.get_single_mut() {
+        for mut transform in query.iter_mut() {
+            let mut direction = Vec3::ZERO;
+            let local_z = transform.local_z();
+            let forward = -Vec3::new(local_z.x, 0., local_z.z);
+            let right = Vec3::new(local_z.z, 0., -local_z.x);
 
-        if keys.pressed(KeyCode::W) {
-            direction += transform.forward();
-        };
-        if keys.pressed(KeyCode::S) {
-            direction += transform.back();
-        };
-        if keys.pressed(KeyCode::D) {
-            direction += transform.right();
-        };
-        if keys.pressed(KeyCode::A) {
-            direction += transform.left();
-        };
+            for key in keys.get_pressed() {
+                match window.cursor.grab_mode {
+                    CursorGrabMode::None => (),
+                    _ => {
+                        let key = *key;
+                        if key == KeyCode::W {
+                            direction += forward;
+                        } else if key == KeyCode::S {
+                            direction -= forward;
+                        } else if key == KeyCode::D {
+                            direction += right;
+                        } else if key == KeyCode::A {
+                            direction -= right;
+                        } else if key == KeyCode::Space {
+                            direction += Vec3::Y;
+                        } else if key == KeyCode::ShiftLeft {
+                            direction -= Vec3::Y;
+                        }
+                    }
+                }
 
-        direction.y = 0.0;
-
-        if keys.pressed(KeyCode::Space) {
-            direction += transform.up();
-        };
-        if keys.pressed(KeyCode::ShiftLeft) {
-            direction += transform.down();
-        };
-
-        let movement = direction.normalize_or_zero() * 5.0 * time.delta_seconds();
-        transform.translation += movement;
+                let movement = direction.normalize_or_zero() * 5.0 * time.delta_seconds();
+                transform.translation += movement;
+            }
+        }
+    } else {
+        warn!("Primary window not found for `player_move`!")
     }
 }
 
@@ -132,24 +140,8 @@ fn player_look(
                     Quat::from_axis_angle(Vec3::Y, yaw) * Quat::from_axis_angle(Vec3::X, pitch);
                 transform.rotation = looking;
             }
-
-            /*
-            if keys.pressed(KeyCode::Left) {
-                yaw += 1.0f32.to_radians();
-            };
-
-            if keys.pressed(KeyCode::Right) {
-                yaw -= 1.0f32.to_radians();
-            };
-
-            if keys.pressed(KeyCode::Up) {
-                pitch += 1.0f32.to_radians();
-            };
-
-            if keys.pressed(KeyCode::Down) {
-                pitch -= 1.0f32.to_radians();
-            };
-            */
         }
+    } else {
+        warn!("Primary window not found for `player_look`!")
     }
 }
