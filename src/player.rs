@@ -43,16 +43,19 @@ fn toggle_grab_cursor(window: &mut Window) {
     };
 }
 
-fn initial_grab_cursor(mut query: Query<&mut Window, With<PrimaryWindow>>) {
-    if let Ok(mut window) = query.get_single_mut() {
+fn initial_grab_cursor(mut primary_window: Query<&mut Window, With<PrimaryWindow>>) {
+    if let Ok(mut window) = primary_window.get_single_mut() {
         toggle_grab_cursor(&mut window);
     } else {
         warn!("Primary window not found for `initial_grab_cursor`!");
     }
 }
 
-fn cursor_grab(keys: Res<Input<KeyCode>>, mut query: Query<&mut Window, With<PrimaryWindow>>) {
-    if let Ok(mut window) = query.get_single_mut() {
+fn cursor_grab(
+    keys: Res<Input<KeyCode>>,
+    mut primary_window: Query<&mut Window, With<PrimaryWindow>>,
+) {
+    if let Ok(mut window) = primary_window.get_single_mut() {
         if keys.just_pressed(KeyCode::Escape) {
             toggle_grab_cursor(&mut window);
         };
