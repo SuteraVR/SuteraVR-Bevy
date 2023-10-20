@@ -1,10 +1,15 @@
-use bevy::prelude::*;
+use bevy::{
+    prelude::*,
+    window::{CursorGrabMode, PrimaryWindow},
+};
 
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, spawn_player)
+            .add_systems(Startup, initial_grab_cursor)
+            .add_systems(Update, cursor_grab)
             .add_systems(Update, player_move)
             .add_systems(Update, player_look);
     }
@@ -23,6 +28,37 @@ fn spawn_player(mut commands: Commands) {
     );
 
     commands.spawn(player);
+}
+
+fn toggle_grab_cursor(window: &mut Window) {
+    match window.cursor.grab_mode {
+        CursorGrabMode::None => {
+            window.cursor.grab_mode = CursorGrabMode::Confined;
+            window.cursor.visible = false;
+        }
+        _ => {
+            window.cursor.grab_mode = CursorGrabMode::None;
+            window.cursor.visible = true;
+        }
+    };
+}
+
+fn initial_grab_cursor(mut query: Query<&mut Window, With<PrimaryWindow>>) {
+    if let Ok(mut window) = query.get_single_mut() {
+        toggle_grab_cursor(&mut window);
+    } else {
+        warn!("Primary window not found for `initial_grab_cursor`!");
+    }
+}
+
+fn cursor_grab(keys: Res<Input<KeyCode>>, mut query: Query<&mut Window, With<PrimaryWindow>>) {
+    if let Ok(mut window) = query.get_single_mut() {
+        if keys.just_pressed(KeyCode::Escape) {
+            toggle_grab_cursor(&mut window);
+        };
+    } else {
+        warn!("Primary window not found for `cursor_grab`!")
+    }
 }
 
 fn player_move(
